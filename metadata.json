@@ -1,0 +1,6 @@
+{
+  "name": "Smart Parking Management & Allocation System",
+  "description": "Project 6 — Futuristic DBMS-driven Smart Parking Control Center demonstrating MySQL 8.0+ relational modeling, dynamic slot allocation with row-level locking, SQL Query Explorer, ER & normalization diagrams, RBAC, and MongoDB event logging.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
