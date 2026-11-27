@@ -14,7 +14,7 @@ import type {
 
 export class PreviewDatabaseStore {
   users: DbUser[] = [
-    { user_id: 1, full_name: 'Pragati Mehta', email: 'pragati.mehta@campus.edu', phone: '+91-9811044210', user_type: 'Admin', department: 'IT & Infrastructure', created_at: '2026-09-01 09:00:00', status: 'Active' },
+    { user_id: 1, full_name: 'Pragati Khanna', email: 'pragati.khanna@campus.edu', phone: '+91-9811044210', user_type: 'Admin', department: 'IT & Infrastructure', created_at: '2026-09-01 09:00:00', status: 'Active' },
     { user_id: 2, full_name: 'Vikram Singh', email: 'vikram.security@campus.edu', phone: '+91-9811044211', user_type: 'Security', department: 'Campus Security Gate-1', created_at: '2026-09-02 08:30:00', status: 'Active' },
     { user_id: 3, full_name: 'Ananya Sharma', email: 'ananya.sharma@campus.edu', phone: '+91-9876543210', user_type: 'Student', department: 'Computer Science', created_at: '2026-09-05 10:15:00', status: 'Active' },
     { user_id: 4, full_name: 'Dr. Rajesh Iyer', email: 'rajesh.iyer@campus.edu', phone: '+91-9822113344', user_type: 'Employee', department: 'Data Science Faculty', created_at: '2026-09-06 11:00:00', status: 'Active' },

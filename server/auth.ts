@@ -159,9 +159,9 @@ export function claimFirstAdmin(
   }
 
   const { salt, hash } = hashSecret(passcode);
-  const resolvedEmail = (email || 'pragati.mehta@campus.edu').trim().toLowerCase();
-  const resolvedName = (displayName || 'Pragati Mehta (Admin)').trim();
-  const resolvedUsername = resolvedEmail.split('@')[0] || 'pragati_admin';
+  const resolvedEmail = (email || 'pragati.khanna@campus.edu').trim().toLowerCase();
+  const resolvedName = (displayName || 'Pragati Khanna (Admin)').trim();
+  const resolvedUsername = resolvedEmail.split('@')[0] || 'pragati_khanna';
 
   claimedAdminRecord = {
     id: 'admin-root',
@@ -399,7 +399,7 @@ export async function authenticateUser(
   }
 
   // 3. Env passcode overrides claimed admin record
-  if (envPasscode.length > 0 && (!normalizedId || normalizedId === 'pragati.mehta@campus.edu' || normalizedId === 'pragati')) {
+  if (envPasscode.length > 0 && (!normalizedId || normalizedId === 'pragati.khanna@campus.edu' || normalizedId === 'pragati.khanna' || normalizedId === 'pragati')) {
     const a = Buffer.from(passcode);
     const b = Buffer.from(envPasscode);
     if (a.length === b.length && crypto.timingSafeEqual(a, b)) {
@@ -407,9 +407,9 @@ export async function authenticateUser(
         {
           sub: 'admin-env',
           role: 'ADMIN',
-          email: 'pragati.mehta@campus.edu',
-          username: 'pragati.mehta',
-          displayName: 'Pragati Mehta (Admin)',
+          email: 'pragati.khanna@campus.edu',
+          username: 'pragati.khanna',
+          displayName: 'Pragati Khanna (Admin)',
         },
         ttlMs
       );
@@ -422,9 +422,9 @@ export async function authenticateUser(
           adminClaimed: true,
           hasEnvPasscode: true,
           role: 'ADMIN',
-          userEmail: 'pragati.mehta@campus.edu',
-          username: 'pragati.mehta',
-          displayName: 'Pragati Mehta (Admin)',
+          userEmail: 'pragati.khanna@campus.edu',
+          username: 'pragati.khanna',
+          displayName: 'Pragati Khanna (Admin)',
         },
       };
     }

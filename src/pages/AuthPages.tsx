@@ -54,8 +54,8 @@ export function AuthPages({ mode, onModeChange, authState, onAuthenticated }: Au
   const [regLoading, setRegLoading] = useState(false);
 
   // First-Run Admin Claim state
-  const [claimName, setClaimName] = useState('Pragati Mehta (Admin)');
-  const [claimEmail, setClaimEmail] = useState('pragati.mehta@campus.edu');
+  const [claimName, setClaimName] = useState('Pragati Khanna (Admin)');
+  const [claimEmail, setClaimEmail] = useState('pragati.khanna@campus.edu');
   const [claimPasscode, setClaimPasscode] = useState('');
   const [showClaimPasscode, setShowClaimPasscode] = useState(false);
   const [claimRemember, setClaimRemember] = useState(false);
@@ -274,7 +274,7 @@ export function AuthPages({ mode, onModeChange, authState, onAuthenticated }: Au
                     autoComplete="username"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder="pragati.mehta@campus.edu or username"
+                    placeholder="pragati.khanna@campus.edu or username"
                     className="w-full rounded-xl border border-slate-700/80 bg-slate-900/90 py-2.5 pl-10 pr-3.5 text-sm text-white placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none"
                     required
                   />
@@ -402,7 +402,7 @@ export function AuthPages({ mode, onModeChange, authState, onAuthenticated }: Au
                     autoComplete="name"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Pragati Mehta"
+                    placeholder="Pragati Khanna"
                     className="w-full rounded-xl border border-slate-700/80 bg-slate-900/90 py-2.5 pl-10 pr-3.5 text-sm text-white placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none"
                     required
                   />
@@ -421,7 +421,7 @@ export function AuthPages({ mode, onModeChange, authState, onAuthenticated }: Au
                     autoComplete="username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    placeholder="pragati_mehta"
+                    placeholder="pragati_khanna"
                     className="w-full rounded-xl border border-slate-700/80 bg-slate-900/90 py-2.5 pl-10 pr-3.5 text-sm text-white placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none"
                     required
                   />
@@ -440,7 +440,7 @@ export function AuthPages({ mode, onModeChange, authState, onAuthenticated }: Au
                     autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="pragati@campus.edu"
+                    placeholder="pragati.khanna@campus.edu"
                     className="w-full rounded-xl border border-slate-700/80 bg-slate-900/90 py-2.5 pl-10 pr-3.5 text-sm text-white placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none"
                     required
                   />
@@ -554,7 +554,7 @@ export function AuthPages({ mode, onModeChange, authState, onAuthenticated }: Au
                 </div>
                 <div>
                   <h2 className="font-display text-base font-semibold text-white">Claim First-Run Admin Access</h2>
-                  <p className="text-xs text-slate-400">Set Pragati&apos;s administrator password for this server session.</p>
+                  <p className="text-xs text-slate-400">Set Pragati Khanna&apos;s administrator password for this server session.</p>
                 </div>
               </div>
 

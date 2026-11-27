@@ -562,7 +562,7 @@ DELIMITER ;
 -- REALISTIC SEED DATA
 -- ============================================================================
 INSERT INTO USER (user_id, full_name, email, phone, user_type, department, created_at, status) VALUES
-(1, 'Pragati Mehta', 'pragati.mehta@campus.edu', '+91-9811044210', 'Admin', 'IT & Infrastructure', '2026-09-01 09:00:00', 'Active'),
+(1, 'Pragati Khanna', 'pragati.khanna@campus.edu', '+91-9811044210', 'Admin', 'IT & Infrastructure', '2026-09-01 09:00:00', 'Active'),
 (2, 'Vikram Singh', 'vikram.security@campus.edu', '+91-9811044211', 'Security', 'Campus Security Gate-1', '2026-09-02 08:30:00', 'Active'),
 (3, 'Ananya Sharma', 'ananya.sharma@campus.edu', '+91-9876543210', 'Student', 'Computer Science', '2026-09-05 10:15:00', 'Active'),
 (4, 'Dr. Rajesh Iyer', 'rajesh.iyer@campus.edu', '+91-9822113344', 'Employee', 'Data Science Faculty', '2026-09-06 11:00:00', 'Active'),
