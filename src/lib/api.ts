@@ -1,3 +1,13 @@
+let activeBearerToken: string | null = null;
+
+export function setAuthToken(token: string | null): void {
+  activeBearerToken = token;
+}
+
+export function getAuthToken(): string | null {
+  return activeBearerToken;
+}
+
 export async function apiRequest<T>(
   url: string,
   options: RequestInit = {},
@@ -7,11 +17,18 @@ export async function apiRequest<T>(
   if (!headers.has('Content-Type') && options.body) {
     headers.set('Content-Type', 'application/json');
   }
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
+  headers.set('X-Requested-With', 'SmartPark-Client');
+
+  const resolvedToken = token !== undefined ? token : activeBearerToken;
+  if (resolvedToken) {
+    headers.set('Authorization', `Bearer ${resolvedToken}`);
   }
 
-  const res = await fetch(url, { ...options, headers });
+  const res = await fetch(url, {
+    ...options,
+    headers,
+    credentials: 'include',
+  });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const err = new Error(data?.error || `Request failed (${res.status})`) as Error & {

@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Loader2 } from 'lucide-react';
 import { AuthModal, SetupGuideModal } from './components/AuthModal';
 import { Sidebar } from './components/Sidebar';
 import { TopBar } from './components/TopBar';
-import { apiRequest } from './lib/api';
+import { apiRequest, setAuthToken } from './lib/api';
 import { AdvancedDbmsView } from './modules/AdvancedDbmsView';
 import { AnalyticsReports } from './modules/AnalyticsReports';
 import { ConcurrencySimulator } from './modules/ConcurrencySimulator';
@@ -17,6 +18,7 @@ import {
   VisitorPassesModule,
 } from './modules/OperationsModules';
 import { OverviewDashboard } from './modules/OverviewDashboard';
+import { RandomObjectView } from './modules/RandomObjectView';
 import {
   DynamicAllocationModule,
   ReservationsModule,
@@ -27,6 +29,7 @@ import { TestingDocsView } from './modules/TestingDocsView';
 import { UserManagement } from './modules/UserManagement';
 import { VehicleManagement } from './modules/VehicleManagement';
 import { ParkingSlotsModule, ParkingZonesModule } from './modules/ZoneSlotModules';
+import { AuthPages, type AuthPageMode } from './pages/AuthPages';
 import type {
   AuthState,
   DbConnectionInfo,
@@ -44,12 +47,15 @@ export default function App() {
 
   const [token, setToken] = useState<string | null>(null);
   const [adminToken, setAdminToken] = useState<string | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [authPageMode, setAuthPageMode] = useState<AuthPageMode>('login');
   const [authState, setAuthState] = useState<AuthState>({
     authenticated: false,
     adminClaimed: false,
     hasEnvPasscode: false,
     role: null,
     userEmail: null,
+    username: null,
     displayName: null,
   });
 
@@ -65,7 +71,7 @@ export default function App() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [setupGuideOpen, setSetupGuideOpen] = useState(false);
 
-  // Global search & notification metadata synced from backend
+  // Global search & notification metadata synced from backend once authenticated
   const [users, setUsers] = useState<DbUser[]>([]);
   const [vehicles, setVehicles] = useState<DbVehicle[]>([]);
   const [violations, setViolations] = useState<DbViolation[]>([]);
@@ -73,22 +79,29 @@ export default function App() {
 
   const refreshGlobalMeta = useCallback(async () => {
     try {
-      const [health, auth, uRes, vRes, viRes, pRes] = await Promise.all([
+      const [health, auth] = await Promise.all([
         apiRequest<DbConnectionInfo>('/api/health'),
-        apiRequest<AuthState>('/api/auth/status', {}, token),
-        apiRequest<{ users: DbUser[] }>('/api/users'),
-        apiRequest<{ vehicles: DbVehicle[] }>('/api/vehicles'),
-        apiRequest<{ violations: DbViolation[] }>('/api/violations'),
-        apiRequest<{ passes: DbVisitorPass[] }>('/api/visitor-passes'),
+        apiRequest<AuthState>('/api/auth/status', {}, token ?? undefined),
       ]);
       setDbInfo(health);
       setAuthState(auth);
-      setUsers(uRes.users);
-      setVehicles(vRes.vehicles);
-      setViolations(viRes.violations);
-      setPasses(pRes.passes);
+
+      if (auth.authenticated) {
+        const [uRes, vRes, viRes, pRes] = await Promise.all([
+          apiRequest<{ users: DbUser[] }>('/api/users'),
+          apiRequest<{ vehicles: DbVehicle[] }>('/api/vehicles'),
+          apiRequest<{ violations: DbViolation[] }>('/api/violations'),
+          apiRequest<{ passes: DbVisitorPass[] }>('/api/visitor-passes'),
+        ]);
+        setUsers(uRes.users);
+        setVehicles(vRes.vehicles);
+        setViolations(viRes.violations);
+        setPasses(pRes.passes);
+      }
     } catch {
       // ignore transient startup polling errors
+    } finally {
+      setAuthChecked(true);
     }
   }, [token]);
 
@@ -129,23 +142,59 @@ export default function App() {
   }, [users, vehicles]);
 
   function handleAuthenticated(newToken: string, newAuth: AuthState, isAdminSession = true) {
+    setAuthToken(newToken);
     setToken(newToken);
     if (isAdminSession && newAuth.role === 'ADMIN') {
       setAdminToken(newToken);
     }
     setAuthState(newAuth);
+    setActiveSection('overview');
   }
 
-  function handleLogout() {
+  async function handleLogout() {
+    try {
+      await apiRequest('/api/auth/logout', { method: 'POST' });
+    } catch {
+      // continue client cleanup even if request fails
+    }
+    setAuthToken(null);
     setToken(null);
     setAdminToken(null);
+    setUsers([]);
+    setVehicles([]);
+    setViolations([]);
+    setPasses([]);
+    setAuthPageMode('login');
     setAuthState((prev) => ({
       ...prev,
       authenticated: false,
       role: null,
       userEmail: null,
+      username: null,
       displayName: null,
     }));
+  }
+
+  if (!authChecked) {
+    return (
+      <div className="bg-cyber-grid flex min-h-screen items-center justify-center text-slate-200">
+        <div className="glass-panel flex items-center gap-3 rounded-2xl px-6 py-4 text-sm">
+          <Loader2 className="h-5 w-5 animate-spin text-cyan-400" />
+          <span>Verifying session security...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!authState.authenticated) {
+    return (
+      <AuthPages
+        mode={authPageMode}
+        onModeChange={setAuthPageMode}
+        authState={authState}
+        onAuthenticated={(newToken, newAuth) => handleAuthenticated(newToken, newAuth)}
+      />
+    );
   }
 
   return (
@@ -225,6 +274,7 @@ export default function App() {
           {activeSection === 'payments' && (
             <PaymentsModule token={token} onRequireAuth={() => setAuthModalOpen(true)} onDataChanged={refreshGlobalMeta} />
           )}
+          {activeSection === 'random-object' && <RandomObjectView />}
           {activeSection === 'analytics' && <AnalyticsReports />}
           {activeSection === 'sql-explorer' && <SqlQueryExplorer dbInfo={dbInfo} />}
           {activeSection === 'schema' && <DatabaseSchema />}

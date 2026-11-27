@@ -171,6 +171,7 @@ export interface AuthState {
   hasEnvPasscode: boolean;
   role: AppRole | null;
   userEmail: string | null;
+  username?: string | null;
   displayName: string | null;
 }
 
@@ -231,4 +232,5 @@ export type NavSectionId =
   | 'concurrency'
   | 'security'
   | 'nosql'
-  | 'testing';
+  | 'testing'
+  | 'random-object';

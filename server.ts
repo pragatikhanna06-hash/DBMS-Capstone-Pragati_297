@@ -9,8 +9,10 @@ import {
   createRbacCredential,
   getAuthStatus,
   listRbacCredentials,
+  registerUserAccount,
   requireAuth,
   requireRole,
+  SESSION_COOKIE_NAME,
   signToken,
   type AuthenticatedRequest,
 } from './server/auth.ts';
@@ -54,24 +56,93 @@ async function startServer() {
     res.json(getAuthStatus(req));
   });
 
+  function setSessionCookie(res: express.Response, token: string, ttlMs: number) {
+    res.cookie(SESSION_COOKIE_NAME, token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      partitioned: true,
+      maxAge: ttlMs,
+      path: '/',
+    });
+  }
+
+  function clearSessionCookie(res: express.Response) {
+    res.clearCookie(SESSION_COOKIE_NAME, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      partitioned: true,
+      path: '/',
+    });
+  }
+
   app.post('/api/auth/bootstrap', (req, res) => {
-    const { passcode, email, displayName } = req.body || {};
+    const { passcode, email, displayName, rememberMe } = req.body || {};
     const result = claimFirstAdmin(String(passcode || ''), email, displayName);
-    if (!result.ok) {
+    if (!result.ok || !result.token) {
       res.status(400).json({ error: result.error });
       return;
+    }
+    if (rememberMe) {
+      setSessionCookie(res, result.token, 1000 * 60 * 60 * 24 * 7);
+    } else {
+      clearSessionCookie(res);
     }
     res.json({ token: result.token, auth: result.state });
   });
 
-  app.post('/api/auth/login', (req, res) => {
-    const { passcode, email } = req.body || {};
-    const result = authenticateUser(String(passcode || ''), email);
+  app.post('/api/auth/register', async (req, res) => {
+    const { fullName, username, email, password, confirmPassword } = req.body || {};
+    if (!fullName || !username || !email || !password || !confirmPassword) {
+      res.status(400).json({ error: 'All registration fields are required.' });
+      return;
+    }
+    if (String(password) !== String(confirmPassword)) {
+      res.status(400).json({ error: 'Password and confirm password do not match.' });
+      return;
+    }
+    const result = await registerUserAccount({
+      fullName: String(fullName),
+      username: String(username),
+      email: String(email),
+      password: String(password),
+    });
     if (!result.ok) {
+      res.status(result.status || 400).json({ error: result.error });
+      return;
+    }
+    res.status(201).json({
+      ok: true,
+      user: result.user,
+      message: 'Account created successfully. Please sign in.',
+    });
+  });
+
+  app.post('/api/auth/login', async (req, res) => {
+    const { passcode, password, identifier, email, username, rememberMe } = req.body || {};
+    const secret = String(password ?? passcode ?? '');
+    const idField = String(identifier ?? email ?? username ?? '');
+    if (!idField.trim() || !secret) {
+      res.status(400).json({ error: 'Email or username and password are required.' });
+      return;
+    }
+    const result = await authenticateUser(secret, idField, Boolean(rememberMe));
+    if (!result.ok || !result.token) {
       res.status(401).json({ error: result.error });
       return;
     }
+    if (rememberMe && result.ttlMs) {
+      setSessionCookie(res, result.token, result.ttlMs);
+    } else {
+      clearSessionCookie(res);
+    }
     res.json({ token: result.token, auth: result.state });
+  });
+
+  app.post('/api/auth/logout', (_req, res) => {
+    clearSessionCookie(res);
+    res.json({ ok: true });
   });
 
   app.get('/api/auth/rbac-accounts', requireAuth, requireRole(['ADMIN']), (_req, res) => {
@@ -104,6 +175,7 @@ async function startServer() {
       sub: `rbac-test-${role.toLowerCase()}`,
       role,
       email: req.auth?.email || 'rbac@campus.edu',
+      username: req.auth?.username || `rbac_${role.toLowerCase()}`,
       displayName: `${req.auth?.displayName || 'Session'} (${role})`,
     });
     res.json({
@@ -114,6 +186,7 @@ async function startServer() {
         hasEnvPasscode: Boolean((process.env.ADMIN_PASSCODE || '').trim()),
         role,
         userEmail: req.auth?.email || 'rbac@campus.edu',
+        username: req.auth?.username || `rbac_${role.toLowerCase()}`,
         displayName: `${req.auth?.displayName || 'Session'} (${role})`,
       },
     });
@@ -122,7 +195,7 @@ async function startServer() {
   // =========================================================================
   // OVERVIEW DASHBOARD
   // =========================================================================
-  app.get('/api/dashboard', async (_req, res) => {
+  app.get('/api/dashboard', requireAuth, async (_req, res) => {
     const pool = getMysqlPool();
     if (pool) {
       try {
@@ -265,7 +338,7 @@ async function startServer() {
   // =========================================================================
   // USERS CRUD
   // =========================================================================
-  app.get('/api/users', async (_req, res) => {
+  app.get('/api/users', requireAuth, async (_req, res) => {
     const pool = getMysqlPool();
     if (pool) {
       const [rows] = await pool.execute('SELECT * FROM USER ORDER BY user_id DESC');
@@ -359,7 +432,7 @@ async function startServer() {
   // =========================================================================
   // VEHICLES CRUD
   // =========================================================================
-  app.get('/api/vehicles', async (_req, res) => {
+  app.get('/api/vehicles', requireAuth, async (_req, res) => {
     const pool = getMysqlPool();
     if (pool) {
       const [rows] = await pool.execute(`
@@ -459,7 +532,7 @@ async function startServer() {
   // =========================================================================
   // PARKING ZONES CRUD
   // =========================================================================
-  app.get('/api/zones', async (_req, res) => {
+  app.get('/api/zones', requireAuth, async (_req, res) => {
     const pool = getMysqlPool();
     if (pool) {
       const [rows] = await pool.execute(`
@@ -547,7 +620,7 @@ async function startServer() {
   // =========================================================================
   // PARKING SLOTS CRUD
   // =========================================================================
-  app.get('/api/slots', async (_req, res) => {
+  app.get('/api/slots', requireAuth, async (_req, res) => {
     const pool = getMysqlPool();
     if (pool) {
       const [rows] = await pool.execute(`
@@ -648,7 +721,7 @@ async function startServer() {
   // =========================================================================
   // RESERVATIONS CRUD (WITH OVERLAP PREVENTION & TRANSACTIONS)
   // =========================================================================
-  app.get('/api/reservations', async (_req, res) => {
+  app.get('/api/reservations', requireAuth, async (_req, res) => {
     const pool = getMysqlPool();
     if (pool) {
       const [rows] = await pool.execute(`
@@ -956,7 +1029,7 @@ async function startServer() {
   // =========================================================================
   // ENTRY & EXIT MANAGEMENT
   // =========================================================================
-  app.get('/api/entry-exit', async (_req, res) => {
+  app.get('/api/entry-exit', requireAuth, async (_req, res) => {
     const pool = getMysqlPool();
     if (pool) {
       const [entries] = await pool.execute(`
@@ -1072,7 +1145,7 @@ async function startServer() {
   // =========================================================================
   // VISITOR PASSES
   // =========================================================================
-  app.get('/api/visitor-passes', async (_req, res) => {
+  app.get('/api/visitor-passes', requireAuth, async (_req, res) => {
     const pool = getMysqlPool();
     if (pool) {
       const [rows] = await pool.execute(`
@@ -1164,7 +1237,7 @@ async function startServer() {
   // =========================================================================
   // VIOLATIONS
   // =========================================================================
-  app.get('/api/violations', async (_req, res) => {
+  app.get('/api/violations', requireAuth, async (_req, res) => {
     const pool = getMysqlPool();
     if (pool) {
       const [rows] = await pool.execute(`
@@ -1254,7 +1327,7 @@ async function startServer() {
   // =========================================================================
   // PAYMENTS & PENALTIES
   // =========================================================================
-  app.get('/api/payments', async (_req, res) => {
+  app.get('/api/payments', requireAuth, async (_req, res) => {
     const pool = getMysqlPool();
     if (pool) {
       const [rows] = await pool.execute(`
@@ -1324,7 +1397,7 @@ async function startServer() {
   // =========================================================================
   // ANALYTICS & REPORTS
   // =========================================================================
-  app.get('/api/analytics', async (req, res) => {
+  app.get('/api/analytics', requireAuth, async (req, res) => {
     const zoneId = req.query.zoneId ? Number(req.query.zoneId) : null;
     const vehicleType = req.query.vehicleType ? String(req.query.vehicleType) : null;
     const userType = req.query.userType ? String(req.query.userType) : null;
@@ -1468,11 +1541,11 @@ async function startServer() {
   // =========================================================================
   // SQL QUERY EXPLORER
   // =========================================================================
-  app.get('/api/sql/catalog', (_req, res) => {
+  app.get('/api/sql/catalog', requireAuth, (_req, res) => {
     res.json({ ...getDbInfo(), catalog: SQL_CATALOG });
   });
 
-  app.post('/api/sql/execute', async (req, res) => {
+  app.post('/api/sql/execute', requireAuth, async (req, res) => {
     const { queryId, customSql } = req.body || {};
     const pool = getMysqlPool();
     const item = SQL_CATALOG.find((q) => q.id === queryId);
@@ -1660,7 +1733,7 @@ async function startServer() {
   // =========================================================================
   // NOSQL EXTENSION — MONGODB
   // =========================================================================
-  app.get('/api/nosql/events', async (_req, res) => {
+  app.get('/api/nosql/events', requireAuth, async (_req, res) => {
     const mongo = getMongoDb();
     if (mongo) {
       try {
@@ -1708,7 +1781,7 @@ async function startServer() {
     res.status(201).json({ ok: true, mode: 'sample-preview', event: doc });
   });
 
-  app.post('/api/nosql/aggregate', async (_req, res) => {
+  app.post('/api/nosql/aggregate', requireAuth, async (_req, res) => {
     const mongo = getMongoDb();
     if (mongo) {
       const pipeline = [
@@ -1735,9 +1808,9 @@ async function startServer() {
   // =========================================================================
   // AUTOMATED DBMS TEST SUITE RUNNER (17 MANDATORY TEST CASES)
   // =========================================================================
-  app.post('/api/tests/run', (_req, res) => {
+  app.post('/api/tests/run', requireAuth, (_req, res) => {
     const results = [
-      { id: 'TC-01', description: 'User registration', input: 'Aarav Mehta / aarav.mehta@campus.edu', expected: 'Valid USER row persisted with Active status', actual: `Verified ${previewStore.users.length} users in USER store`, status: previewStore.users.length > 0 ? 'PASS' : 'FAIL' },
+      { id: 'TC-01', description: 'User registration', input: 'Pragati Mehta / pragati.mehta@campus.edu', expected: 'Valid USER row persisted with Active status', actual: `Verified ${previewStore.users.length} users in USER store`, status: previewStore.users.length > 0 ? 'PASS' : 'FAIL' },
       { id: 'TC-02', description: 'Duplicate email prevention', input: 'ananya.sharma@campus.edu (existing)', expected: 'Reject with UNIQUE constraint uq_user_email (HTTP 409)', actual: previewStore.users.some((u) => u.email === 'ananya.sharma@campus.edu') ? 'Unique constraint blocks duplicate email insertion' : 'Missing seed check', status: 'PASS' },
       { id: 'TC-03', description: 'Vehicle registration', input: 'HR26AB1234 (EV) -> User #3', expected: 'VEHICLE linked via fk_vehicle_user', actual: `Verified ${previewStore.vehicles.length} vehicles linked to valid user_ids`, status: previewStore.vehicles.every((v) => previewStore.users.some((u) => u.user_id === v.user_id)) ? 'PASS' : 'FAIL' },
       { id: 'TC-04', description: 'Duplicate registration number prevention', input: 'HR26AB1234 (existing)', expected: 'Reject with UNIQUE constraint uq_vehicle_reg (HTTP 409)', actual: new Set(previewStore.vehicles.map((v) => v.registration_number)).size === previewStore.vehicles.length ? 'All vehicle plates strictly unique' : 'Duplicate detected', status: 'PASS' },

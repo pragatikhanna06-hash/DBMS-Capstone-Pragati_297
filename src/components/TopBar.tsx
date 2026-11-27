@@ -186,14 +186,18 @@ export function TopBar({
               type="button"
               onClick={() => onSelectSection('security')}
               className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-1.5 text-xs font-medium text-cyan-200 hover:bg-cyan-500/20 whitespace-nowrap"
+              title={`${authState.displayName || 'Authenticated User'} (${authState.role})`}
             >
-              <ShieldCheck className="h-3.5 w-3.5 text-cyan-400" />
-              <span className="hidden md:inline">{authState.role}</span>
+              <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-cyan-400" />
+              <span className="hidden max-w-[140px] truncate md:inline">
+                {authState.displayName || authState.role}
+              </span>
             </button>
             <button
               type="button"
               onClick={onLogout}
               title="Sign out"
+              aria-label="Sign out"
               className="rounded-lg border border-slate-700 p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white"
             >
               <LogOut className="h-3.5 w-3.5" />

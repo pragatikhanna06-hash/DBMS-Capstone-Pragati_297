@@ -12,8 +12,8 @@ interface AuthModalProps {
 
 export function AuthModal({ open, onClose, authState, onAuthenticated }: AuthModalProps) {
   const [passcode, setPasscode] = useState('');
-  const [email, setEmail] = useState('aarav.mehta@campus.edu');
-  const [displayName, setDisplayName] = useState('Aarav Mehta (Admin)');
+  const [email, setEmail] = useState('pragati.mehta@campus.edu');
+  const [displayName, setDisplayName] = useState('Pragati Mehta (Admin)');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
